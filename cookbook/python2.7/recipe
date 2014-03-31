@@ -34,19 +34,25 @@ botbrew_do_build() {
 		(
 			mkdir -p ${G_OBJECT}; cd ${G_OBJECT}
 #AR="${G_AR}" RANLIB="${G_RANLIB}"
+# 			cat > config.site <<EOF
+# ac_cv_file__dev_ptmx=yes
+# ac_cv_file__dev_ptc=no
+# ac_cv_have_long_long_format=yes
+# EOF
 			CPPFLAGS="-I${G_INCDIR} -I${G_INCDIR}/ncursesw -I${G_INCDIR}/musl ${G_CPPFLAGS}" CFLAGS="${G_ALL_CFLAGS}" \
 			LDFLAGS="-L${G_LIBDIR} -L$(pwd)" LIBS="-lmusl" \
-			../${G_SOURCE}/configure ${G_SYSTEMPREFIX[@]} --host=${G_TRIPLET} \
+			CONFIG_SITE=config.site ../${G_SOURCE}/configure ${G_SYSTEMPREFIX[@]} --host=${G_TRIPLET} --build="x86_64-linux-gnu" \
 				 --enable-shared
+				 #--disable-ipv6
 			cat > Modules/Setup.local <<-EOF
 				#readline readline.c -lreadline -lncursesw
 				#_curses _cursesmodule.c -lncursesw
 				#_curses_panel _curses_panel.c -lpanelw -lncursesw
 				crypt cryptmodule.c -lmusl
-				pwd pwdmodule.c -lmusl
+				# pwd pwdmodule.c -lmusl
 				grp grpmodule.c -lmusl
 				spwd spwdmodule.c -lmusl
-				_locale _locale.c -lmusl
+				_locale _localemodule.c -lmusl
 			EOF
 			cat pyconfig.h \
 				| sed -e '/HAVE_FDATASYNC/ c#undef HAVE_FDATASYNC' \
@@ -55,6 +61,11 @@ botbrew_do_build() {
 				| sed -e '/HAVE_GETHOSTBYNAME_R/ c#undef HAVE_GETHOSTBYNAME_R' \
 				> temp
 			mv temp pyconfig.h
+			# mkdir -p Include Python
+			# for name in Include/graminit.h Python/graminit.c; do
+			# 	cp ../${G_SOURCE}/$name $(dirname $name)
+			# 	touch $name
+			# done
 		)
 	fi
 	if ! [ -e ${G_EXPORT}/.d ]; then
